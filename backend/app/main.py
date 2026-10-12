@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .ai import OpenAIDecisionEngine
@@ -651,6 +652,23 @@ app = FastAPI(
     version="1.1.0",
     lifespan=lifespan,
 )
+
+# Browser access for the hosted static web UI. Override with comma-separated
+# exact origins in FRESH_WEB_ORIGINS; no wildcard origins are used by default.
+_web_origins = [
+    item.strip() for item in os.getenv(
+        "FRESH_WEB_ORIGINS",
+        "https://sparmar3786-pixel.github.io,http://127.0.0.1:8787,http://localhost:8787",
+    ).split(",") if item.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_web_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Device-Id", "Authorization"],
+)
+
 
 
 @app.get("/health")

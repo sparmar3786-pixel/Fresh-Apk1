@@ -1,0 +1,50 @@
+name: Deploy Fresh-Apk1 web frontend
+
+on:
+  push:
+    branches: [feat/web-desktop-qwen, main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fresh-apk1-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate frontend and desktop bridge syntax
+        run: |
+          node --check frontend/app.js
+          node --check frontend/puter-ai.js
+          python -m py_compile desktop_bridge.py backend/app/main.py
+      - name: Prepare static web app
+        run: |
+          mkdir -p site
+          cp frontend/index.html frontend/styles.css frontend/app.js frontend/puter-ai.js site/
+          test -s site/index.html
+          test -s site/app.js
+          test -s site/puter-ai.js
+          cat > site/.nojekyll <<'EOF'
+          EOF
+      - name: Publish static files to gh-pages branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd site
+          git init
+          git checkout -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Deploy Fresh-Apk1 web frontend from ${GITHUB_SHA}"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin gh-pages
