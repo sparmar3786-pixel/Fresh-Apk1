@@ -29,6 +29,7 @@
     el.textContent = "";
     const wrap = document.createElement("div");
     wrap.className = "settings-form";
+    wrap.id = "settingsBox";
     wrap.innerHTML = '<label>Backend HTTPS URL <input id="backendInput" placeholder="https://your-backend.example.com" autocomplete="url"></label> <button id="saveBackend">Save & connect</button><p class="muted">Device ID is generated locally and sent as X-Device-Id. Never enter broker/API secrets into this browser setting.</p><p>Local Qwen: use the desktop bridge started with <code>python desktop_bridge.py</code>.</p>';
     el.replaceWith(wrap);
     const input = wrap.querySelector("#backendInput");
