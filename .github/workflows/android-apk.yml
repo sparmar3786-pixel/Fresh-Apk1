@@ -38,8 +38,9 @@ jobs:
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
-          cache: true
-          cache-dependency-path: flutter_app/pubspec.lock
+          # Disable the action's cache dependency because repository policy requires
+          # every nested action (including actions/cache) to be pinned to a full SHA.
+          cache: false
 
       - name: Generate Android platform files if missing
         shell: bash
@@ -58,12 +59,11 @@ jobs:
           s = p.read_text()
           permission = '    <uses-permission android:name="android.permission.INTERNET"/>\n'
           if "android.permission.INTERNET" not in s:
-              match = re.search(r"<manifest\b[^>]*>", s, flags=re.DOTALL)
+              match = re.search(r"<manifest\\b[^>]*>", s, flags=re.DOTALL)
               if not match:
                   raise SystemExit("AndroidManifest.xml has no valid <manifest ...> root tag")
               s = s[:match.end()] + "\n" + permission + s[match.end():]
               p.write_text(s)
-          # Fail early with a clear message if the manifest is malformed.
           import xml.etree.ElementTree as ET
           ET.parse(p)
           print("AndroidManifest.xml is valid XML and INTERNET permission is present.")
