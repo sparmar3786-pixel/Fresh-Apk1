@@ -21,6 +21,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate frontend and desktop bridge syntax
+        run: |
+          node --check frontend/app.js
+          node --check frontend/puter-ai.js
+          python -m py_compile desktop_bridge.py
       - name: Prepare static web app
         run: |
           mkdir -p site
