@@ -1508,6 +1508,21 @@ class _ApiPageState extends State<ApiPage> {
     'remember_credentials':rememberCredentials,
   };
 
+  Future<void> testBackend() async {
+    setState(()=>working=true);
+    try {
+      await FreshApi(widget.backendUrl.trim()).checkBackend();
+      if(!mounted)return;
+      setState(()=>message='Backend health check PASSED: ${widget.backendUrl.trim()}');
+    } catch(e) {
+      if(mounted) {
+        setState(()=>message='Backend health check FAILED: ${e.toString().replaceFirst('Exception: ','')}');
+      }
+    } finally {
+      if(mounted)setState(()=>working=false);
+    }
+  }
+
   Future<void> connect() async {
     setState(()=>working=true);
     try {
@@ -1534,6 +1549,14 @@ class _ApiPageState extends State<ApiPage> {
   }
 
   @override Widget build(BuildContext context)=>ListView(padding:const EdgeInsets.all(10),children:[
+    const Section('Backend Connection'),
+    Text('Backend URL is configured when the APK is built. Do not paste a Railway account/API token here; this app does not authenticate the backend with a Railway access key.'),
+    FilledButton.icon(
+      onPressed:working?null:testBackend,
+      icon:const Icon(Icons.wifi_tethering),
+      label:Text(working?'TESTING…':'TEST BACKEND CONNECTION'),
+    ),
+    const SizedBox(height:8),
     const Section('Angel One • SmartAPI'),
     if(savedStatus['stored_session']==true) Card(child:ListTile(
       leading:const Icon(Icons.verified_user,color:Colors.greenAccent),
