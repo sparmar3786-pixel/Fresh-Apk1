@@ -53,12 +53,20 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path("android/app/src/main/AndroidManifest.xml")
           s = p.read_text()
-          permission = '<uses-permission android:name="android.permission.INTERNET"/>'
+          permission = '    <uses-permission android:name="android.permission.INTERNET"/>\\n'
           if "android.permission.INTERNET" not in s:
-              s = s.replace("<manifest", "<manifest\n    " + permission, 1)
+              match = re.search(r"<manifest\\b[^>]*>", s, flags=re.DOTALL)
+              if not match:
+                  raise SystemExit("AndroidManifest.xml has no valid <manifest ...> root tag")
+              s = s[:match.end()] + "\\n" + permission + s[match.end():]
               p.write_text(s)
+          # Fail early with a clear message if the manifest is malformed.
+          import xml.etree.ElementTree as ET
+          ET.parse(p)
+          print("AndroidManifest.xml is valid XML and INTERNET permission is present.")
           PY
 
       - name: Install dependencies
