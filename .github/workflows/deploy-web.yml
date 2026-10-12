@@ -25,7 +25,7 @@ jobs:
         run: |
           node --check frontend/app.js
           node --check frontend/puter-ai.js
-          python -m py_compile desktop_bridge.py
+          python -m py_compile desktop_bridge.py backend/app/main.py
       - name: Prepare static web app
         run: |
           mkdir -p site
