@@ -93,9 +93,18 @@ class FreshApi {
       postJson('/v1/settings/credentials', body);
 
   Future<void> checkBackend() async {
-    final response = await http.get(AppConfig.healthUri).timeout(const Duration(seconds: 10));
+    // Always probe the same base URL used by this FreshApi instance. Using the
+    // compile-time default here made custom backend URLs appear offline.
+    final uri = _uri('/health');
+    final response = await http
+        .get(uri, headers: await _headers())
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) {
-      throw Exception('Backend health check failed: HTTP ${response.statusCode}. Railway service may be down or the domain may be wrong.');
+      final body = response.body.trim();
+      throw Exception(
+        'Backend health check failed at $uri: HTTP ${response.statusCode}'
+        '${body.isEmpty ? '' : ' — ${body.length > 240 ? body.substring(0, 240) : body}'}',
+      );
     }
   }
 
