@@ -72,15 +72,19 @@ jobs:
               if count != 1:
                   raise SystemExit("Could not find compileOptions block to enable desugaring")
 
-          # Add the required desugar library to the app dependencies.
+          # Add the required desugar library, creating a dependencies block
+          # when the generated Flutter Kotlin DSL template has none.
           if "desugar_jdk_libs" not in s:
               dependency = ('    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
                             if kotlin_dsl else
                             "    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'")
               pattern = r"(dependencies\s*\{)"
               s, count = re.subn(pattern, lambda m: m.group(1) + "\n" + dependency, s, count=1)
-              if count != 1:
-                  raise SystemExit("Could not find dependencies block to add desugar_jdk_libs")
+              if count == 0:
+                  if kotlin_dsl:
+                      s = s.rstrip() + "\n\ndependencies {\n" + dependency + "\n}\n"
+                  else:
+                      s = s.rstrip() + "\n\ndependencies {\n" + dependency + "\n}\n"
           gradle.write_text(s)
           print(f"Enabled core library desugaring in {gradle}")
           PY
