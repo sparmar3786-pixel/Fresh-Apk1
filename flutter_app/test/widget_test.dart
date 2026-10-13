@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fresh_algo_signal/main.dart';
 
 void main() {
-  testWidgets('Fresh app renders all twenty top-level tabs', (tester) async {
+  testWidgets('Fresh app renders all top-level tabs', (tester) async {
     await tester.pumpWidget(const FreshApp());
 
     for (final tab in tabs) {
@@ -11,6 +11,7 @@ void main() {
     }
     expect(find.text('Paper Trades'), findsNothing);
     expect(tabs, contains('Research Engines'));
+    expect(tabs, contains('Local Qwen'));
   });
 
 
