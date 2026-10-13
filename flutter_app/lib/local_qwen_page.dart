@@ -186,7 +186,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
           .where((message) => message.text.isNotEmpty)
           .toList();
       final chatMessages = <ChatMessage>[
-        const ChatMessage(
+        ChatMessage(
           role: 'system',
           content: 'You are Fresh Local Qwen, a concise assistant. For trading questions, use only facts supplied in the prompt, state uncertainty, and never invent live prices or claim an unverified trade is safe.',
         ),
