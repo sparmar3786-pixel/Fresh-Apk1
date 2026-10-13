@@ -106,7 +106,7 @@ class _FreshHomeState extends State<FreshHome> {
                 ? 'Signal data request failed: $signalsFetchError'
                 : (lastFetch != null ? 'LIVE unavailable — showing last fetched market data.' : 'Backend online — waiting for Angel One market data. Check broker credentials and connection status.'));
       });
-      await _emitValidatedSignalNotifications(s);
+      try { await _emitValidatedSignalNotifications(s); } catch (_) { /* Notifications must not mark a healthy API offline. */ }
     } catch (e) {
       if (mounted) setState(() { apiOnline = false; signalsEndpointOnline = false; signalsFetchError = e.toString().replaceFirst('Exception: ', ''); });
       final prefs = await SharedPreferences.getInstance();
