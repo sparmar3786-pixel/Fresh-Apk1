@@ -21,7 +21,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
       'https://huggingface.co/empero-ai/Qwen3.8-2B-Distill-GGUF/resolve/main/Qwen3.8-2B-Q4_K_M.gguf?download=true';
   static const _modelBytes = 1312000000;
 
-  final _controller = LlamaController();
+  late LlamaController _controller;
   final _promptController = TextEditingController();
   final _scrollController = ScrollController();
   final List<_LocalMessage> _messages = [];
@@ -38,6 +38,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
   @override
   void initState() {
     super.initState();
+    _controller = LlamaController();
     _findExistingModel();
   }
 
@@ -314,6 +315,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
                             await _controller.dispose();
                             if (mounted) {
                               setState(() {
+                                _controller = LlamaController();
                                 _loaded = false;
                                 _status = 'Model unloaded';
                               });
