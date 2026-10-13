@@ -50,7 +50,42 @@ jobs:
             flutter create --platforms=android --project-name fresh_algo_signal .
           fi
 
-      - name: Ensure Android network permission
+      - name: Enable core library desugaring for notifications
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          candidates = [Path("android/app/build.gradle.kts"), Path("android/app/build.gradle")]
+          gradle = next((p for p in candidates if p.exists()), None)
+          if gradle is None:
+              raise SystemExit("Could not find android/app/build.gradle(.kts)")
+          s = gradle.read_text()
+          kotlin_dsl = gradle.suffix == ".kts"
+
+          # Enable Java 8+ API desugaring inside compileOptions.
+          if "isCoreLibraryDesugaringEnabled" not in s and "coreLibraryDesugaringEnabled" not in s:
+              pattern = r"(compileOptions\s*\{)"
+              replacement = r"\1\n        " + ("isCoreLibraryDesugaringEnabled = true" if kotlin_dsl else "coreLibraryDesugaringEnabled true")
+              s, count = re.subn(pattern, replacement, s, count=1)
+              if count != 1:
+                  raise SystemExit("Could not find compileOptions block to enable desugaring")
+
+          # Add the required desugar library to the app dependencies.
+          if "desugar_jdk_libs" not in s:
+              dependency = ('    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
+                            if kotlin_dsl else
+                            "    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'")
+              pattern = r"(dependencies\s*\{)"
+              s, count = re.subn(pattern, lambda m: m.group(1) + "\n" + dependency, s, count=1)
+              if count != 1:
+                  raise SystemExit("Could not find dependencies block to add desugar_jdk_libs")
+          gradle.write_text(s)
+          print(f"Enabled core library desugaring in {gradle}")
+          PY
+
+      - name: Ensure Android network and notification permissions
         shell: bash
         run: |
           python3 - <<'PY'
@@ -71,7 +106,7 @@ jobs:
               p.write_text(s)
           import xml.etree.ElementTree as ET
           ET.parse(p)
-          print("AndroidManifest.xml is valid XML and INTERNET permission is present.")
+          print("AndroidManifest.xml is valid XML and permissions are present.")
           PY
 
       - name: Install dependencies
