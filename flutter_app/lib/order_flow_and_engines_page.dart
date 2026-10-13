@@ -74,15 +74,17 @@ class StrategyEngines15Page extends StatelessWidget {
     ('VWAP bias', 'vwap'),
     ('Bollinger bands', 'bb_upper / bb_lower'),
     ('ATR volatility', 'atr14'),
-    ('Volume expansion', 'volume / volume_sma'),
-    ('Open-interest buildup', 'call_oi / put_oi'),
+    ('Mean reversion', 'RSI 14 + Z-score 20'),
+    ('Bollinger reversion', 'bb_upper / bb_lower / price'),
+    ('ATR volatility guard', 'atr14'),
+    ('OI + premium flow', 'premium_change / oi_change'),
     ('Put-call ratio', 'pcr'),
-    ('OI imbalance', 'call_oi_change / put_oi_change'),
-    ('Supertrend', 'supertrend / trend'),
-    ('ADX trend strength', 'adx'),
-    ('Stochastic momentum', 'stoch_k / stoch_d'),
+    ('OI flow imbalance', 'CE vs PE OI changes'),
+    ('Supertrend direction', 'supertrend_direction'),
+    ('ADX trend strength', 'adx14'),
+    ('Stochastic momentum', 'stochastic_k14 / stochastic_d3'),
     ('Multi-timeframe alignment', 'timeframe_analysis'),
-    ('Data quality + risk gate', 'live_validation'),
+    ('Execution liquidity + risk gate', 'bid / ask spread + live_validation'),
   ];
 
   @override
@@ -92,6 +94,8 @@ class StrategyEngines15Page extends StatelessWidget {
     final ind = _asMap(s['indicators']);
     final oi = _asMap(s['oi_summary']);
     final research = _asMap(_asMap(s['timeframe_analysis'])['research_pack']);
+    final researchChecks = _asMap(research['checks']);
+    final confluenceChecks = _asMap(_asMap(s['confluence'])['checks']);
     final validation = _asMap(s['live_validation']);
     final aiRow = _asMap(ai[selectedIndex]);
     final decision = (validation['decision'] ?? s['decision'] ?? 'WAIT').toString();
@@ -103,14 +107,16 @@ class StrategyEngines15Page extends StatelessWidget {
       _row(ind, ['vwap'], _compare(m['ltp'], ind['vwap'])),
       _row(ind, ['bb_upper','bb_lower'], _bands(m['ltp'], ind['bb_lower'], ind['bb_upper'])),
       _row(ind, ['atr14'], ind['atr14'] == null ? 'UNKNOWN' : 'VALUE AVAILABLE'),
-      _row(ind, ['volume','volume_sma'], _compare(ind['volume'], ind['volume_sma'])),
-      _row(oi, ['call_oi','put_oi'], _compare(oi['put_oi'], oi['call_oi'])),
+      _row(researchChecks, ['mean_reversion'], _state(researchChecks['mean_reversion'])),
+      _row(ind, ['bb_upper','bb_lower'], _bands(m['ltp'], ind['bb_lower'], ind['bb_upper'])),
+      _row(ind, ['atr14'], ind['atr14'] == null ? 'UNKNOWN' : 'VOLATILITY MEASURED'),
+      _row(researchChecks, ['option_oi_premium_flow'], _state(researchChecks['option_oi_premium_flow'])),
       _row(oi, ['pcr'], _pcr(oi['pcr'])),
-      _row(oi, ['call_oi_change','put_oi_change'], _compare(oi['put_oi_change'], oi['call_oi_change'])),
-      _row(ind, ['supertrend','trend'], ind['supertrend'] == null && ind['trend'] == null ? 'UNKNOWN' : (ind['trend'] ?? 'VALUE AVAILABLE').toString().toUpperCase()),
-      _row(ind, ['adx'], _adx(ind['adx'])),
-      _row(ind, ['stoch_k','stoch_d'], _compare(ind['stoch_k'], ind['stoch_d'])),
-      _row(_asMap(s['timeframe_analysis']), ['direction','trend','alignment'], _asMap(s['timeframe_analysis']).isEmpty ? 'UNKNOWN' : 'BACKEND RESULT AVAILABLE'),
+      _row(confluenceChecks, ['oi_flow'], _state(confluenceChecks['oi_flow'])),
+      _row(ind, ['supertrend_direction'], _directionLabel(ind['supertrend_direction'])),
+      _row(ind, ['adx14'], _adx(ind['adx14'])),
+      _row(ind, ['stochastic_k14','stochastic_d3'], _compare(ind['stochastic_k14'], ind['stochastic_d3'])),
+      _row(_asMap(s['timeframe_analysis']), ['research_pack'], research.isEmpty ? 'UNKNOWN' : 'RESEARCH PACK AVAILABLE'),
       _row(validation, ['verdict','decision'], validation['verdict']?.toString().toUpperCase() ?? 'NOT VALIDATED'),
     ];
     return ListView(padding: const EdgeInsets.all(12), children: [
@@ -141,6 +147,8 @@ class StrategyEngines15Page extends StatelessWidget {
     final present = keys.any((k) => source[k] != null);
     return {'status': present ? status : 'UNKNOWN'};
   }
+  static String _state(dynamic v) { final row = _asMap(v); return (row['state'] ?? 'UNKNOWN').toString().toUpperCase(); }
+  static String _directionLabel(dynamic v) { final x = (v ?? '').toString().toUpperCase(); return x.isEmpty || x == 'N/A' ? 'UNKNOWN' : x; }
   static String _direction(dynamic v) { final n = _num(v); return n == null ? 'UNKNOWN' : n > 0 ? 'BULLISH' : n < 0 ? 'BEARISH' : 'NEUTRAL'; }
   static String _compare(dynamic a, dynamic b) { final x = _num(a), y = _num(b); return x == null || y == null ? 'UNKNOWN' : x > y ? 'BULLISH' : x < y ? 'BEARISH' : 'NEUTRAL'; }
   static String _rsi(dynamic v) { final n = _num(v); return n == null ? 'UNKNOWN' : n >= 55 ? 'BULLISH' : n <= 45 ? 'BEARISH' : 'NEUTRAL'; }
