@@ -11,8 +11,9 @@ import 'pdf_report_solutions_page.dart';
 import 'quant_research_hub_page.dart';
 import 'order_flow_and_engines_page.dart';
 import 'signal_notifications.dart';
+import 'local_qwen_page.dart';
 
-const tabs = ['Dashboard','Market','Option Chain','OI Lab','Indicators','Signals','Risk','Commodities','Backtesting','API','AI Access','Data Health','API & Railway','Repository Library','Trading Setup','Research Engines','3-Layer Trade Engine','Broker Home (Prototype)','PDF Report & Repositories','Quant Research Hub','Order Flow','15 Strategy Engines'];
+const tabs = ['Dashboard','Market','Option Chain','OI Lab','Indicators','Signals','Risk','Commodities','Backtesting','API','AI Access','Data Health','API & Railway','Repository Library','Trading Setup','Research Engines','3-Layer Trade Engine','Broker Home (Prototype)','PDF Report & Repositories','Quant Research Hub','Order Flow','15 Strategy Engines','Local Qwen'];
 const indexes = ['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY','SENSEX','BANKEX'];
 
 void main() => runApp(const FreshApp());
@@ -281,6 +282,7 @@ class _FreshHomeState extends State<FreshHome> {
         const QuantResearchHubPage(),
         OrderFlowPage(selectedIndex: selectedIndex, market: market, signals: signals),
         StrategyEngines15Page(selectedIndex: selectedIndex, market: market, signals: signals, ai: ai),
+        const LocalQwenPage(),
       ]),
     ),
   );
