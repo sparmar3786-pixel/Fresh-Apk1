@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import 'package:llama_flutter_android/llama_flutter_android.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -16,20 +16,15 @@ class LocalQwenPage extends StatefulWidget {
 }
 
 class _LocalQwenPageState extends State<LocalQwenPage> {
-  static const _modelFileName = 'Qwen3.8-2B-Q4_K_M.gguf';
-  static const _modelUrl =
-      'https://huggingface.co/empero-ai/Qwen3.8-2B-Distill-GGUF/resolve/main/Qwen3.8-2B-Q4_K_M.gguf?download=true';
-  static const _modelBytes = 1312000000;
+  static const _modelFileName = 'Qwen3.5-4B-Q4_K_M.gguf';
 
   late LlamaController _controller;
   final _promptController = TextEditingController();
   final _scrollController = ScrollController();
   final List<_LocalMessage> _messages = [];
   String? _modelPath;
-  String _status = 'Model not downloaded';
+  String _status = 'Choose your existing GGUF model from Downloads';
   String? _error;
-  double _downloadProgress = 0;
-  bool _downloading = false;
   bool _loading = false;
   bool _loaded = false;
   bool _generating = false;
@@ -57,7 +52,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
         _modelPath = file.path;
         _status = file.existsSync()
             ? 'GGUF file found • ready to load'
-            : 'Ready to download Q4_K_M (about 1.31 GB)';
+            : 'Select the existing GGUF file from Downloads';
       });
     } catch (e) {
       if (mounted) setState(() => _error = 'Storage check failed: $e');
@@ -79,70 +74,45 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
     }
   }
 
-  Future<void> _downloadModel() async {
-    if (_downloading || _loading || _generating) return;
+  Future<void> _pickExistingModel() async {
+    if (_loading || _generating) return;
     setState(() {
-      _downloading = true;
-      _downloadProgress = 0;
       _error = null;
-      _status = 'Downloading model… keep the app open';
+      _status = 'Choose Qwen3.5-4B-Q4_K_M.gguf from Downloads';
     });
-
-    final client = http.Client();
-    File? destination;
     try {
-      destination = await _modelFile();
-      final partial = File('${destination.path}.part');
-      if (await partial.exists()) await partial.delete();
-      final request = http.Request('GET', Uri.parse(_modelUrl));
-      request.headers['User-Agent'] = 'Fresh-Apk1-Local-Qwen';
-      final response = await client.send(request);
-      if (response.statusCode != HttpStatus.ok) {
-        throw HttpException('Model server returned HTTP ${response.statusCode}');
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['gguf'],
+        allowMultiple: false,
+        withData: false,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final sourcePath = result.files.single.path;
+      if (sourcePath == null || sourcePath.isEmpty) {
+        throw const FormatException('Android did not provide a readable file path. Try copying the GGUF into Downloads and selecting it again.');
       }
-
-      var received = 0;
-      final sink = partial.openWrite();
-      try {
-        await for (final chunk in response.stream) {
-          sink.add(chunk);
-          received += chunk.length;
-          if (mounted) {
-            setState(() {
-              _downloadProgress = (received / (response.contentLength ?? _modelBytes))
-                  .clamp(0.0, 1.0);
-              _status = 'Downloaded ${(received / 1000000000).toStringAsFixed(2)} GB';
-            });
-          }
-        }
-      } finally {
-        await sink.flush();
-        await sink.close();
+      final source = File(sourcePath);
+      if (!await source.exists() || !await _hasGgufMagic(source)) {
+        throw const FormatException('Selected file is not a valid GGUF file.');
       }
-
-      if (received < 1000000000 || !await _hasGgufMagic(partial)) {
-        throw const FormatException(
-          'Downloaded file failed GGUF header/size validation; it may be incomplete or an HTML error page.',
-        );
+      if (await source.length() < 1000000000) {
+        throw const FormatException('The selected file looks too small for this 4B Q4_K_M model; check that the download is complete.');
       }
-      if (await destination.exists()) await destination.delete();
-      await partial.rename(destination.path);
+      final destination = await _modelFile();
+      if (source.absolute.path != destination.absolute.path) {
+        await source.copy(destination.path);
+      }
       if (!mounted) return;
       setState(() {
-        _modelPath = destination!.path;
-        _downloadProgress = 1;
-        _status = 'Download complete • load the model to start offline chat';
+        _modelPath = destination.path;
+        _status = 'Existing model copied into app storage • ready to load';
       });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Download failed: $e';
-          _status = 'Model not ready';
-        });
-      }
-    } finally {
-      client.close();
-      if (mounted) setState(() => _downloading = false);
+      if (mounted) setState(() {
+        _error = 'Could not import model: $e';
+        _status = 'Model not ready';
+      });
     }
   }
 
@@ -268,7 +238,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
 
   @override
   Widget build(BuildContext context) {
-    final canDownload = !_downloading && !_loading && !_generating;
+    final canSelect = !_loading && !_generating;
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
@@ -278,7 +248,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Qwen3.8-2B Distill GGUF • Q4_K_M • llama.cpp native inference',
+          'Qwen3.5-4B GGUF • Q4_K_M • on-device inference',
           style: TextStyle(color: Colors.white70),
         ),
         const SizedBox(height: 12),
@@ -296,25 +266,16 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
                   const SizedBox(width: 8),
                   Expanded(child: Text(_status)),
                 ]),
-                if (_downloading) ...[
-                  const SizedBox(height: 12),
-                  LinearProgressIndicator(value: _downloadProgress),
-                  const SizedBox(height: 4),
-                  Text('${(_downloadProgress * 100).toStringAsFixed(1)}%'),
-                ],
                 const SizedBox(height: 12),
                 if (!_loaded)
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     OutlinedButton.icon(
-                      onPressed: canDownload ? _downloadModel : null,
-                      icon: const Icon(Icons.download),
-                      label: Text(_modelPath == null ||
-                              !File(_modelPath!).existsSync()
-                          ? 'Download model (~1.31 GB)'
-                          : 'Download again'),
+                      onPressed: canSelect ? _pickExistingModel : null,
+                      icon: const Icon(Icons.folder_open),
+                      label: const Text('Select existing GGUF'),
                     ),
                     FilledButton.icon(
-                      onPressed: canDownload &&
+                      onPressed: canSelect &&
                               _modelPath != null &&
                               File(_modelPath!).existsSync()
                           ? _loadModel
@@ -352,7 +313,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
           child: Padding(
             padding: EdgeInsets.all(12),
             child: Text(
-              'Privacy: prompts are processed by the on-device engine. The first model download requires internet; after download, chat can work offline. The model does not provide live market data by itself. Keep at least 2 GB free and close other apps if loading fails.',
+              'The app reuses your existing GGUF file; no model download is started. It copies the selected file into app-private storage, then loads it with the bundled native engine. Chat can work offline after successful load. Live market data still requires a data connection. A 4B model may need several GB of free RAM; load failure can indicate RAM or model-format incompatibility.',
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ),
