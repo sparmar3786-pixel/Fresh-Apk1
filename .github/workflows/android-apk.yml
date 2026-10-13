@@ -122,10 +122,26 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
+      - name: Validate Railway backend URL
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          value = os.environ.get('BACKEND_URL', '').strip().rstrip('/')
+          parsed = urlparse(value)
+          if parsed.scheme != 'https' or not parsed.netloc:
+              raise SystemExit('Set GitHub Actions repository variable BACKEND_URL to the new Railway public HTTPS domain before building. Example: https://your-service.up.railway.app')
+          print('Configured backend:', value)
+          PY
+
       - name: Build release APK
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
         run: >-
           flutter build apk --release --no-tree-shake-icons
-          --dart-define=BACKEND_URL=https://fresh-algo-signal-gateway-v2.onrender.com
+          --dart-define=BACKEND_URL=${BACKEND_URL}
 
       - name: Verify APK exists
         shell: bash
