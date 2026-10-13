@@ -9,8 +9,10 @@ import 'trade_engine_page.dart';
 import 'broker_home_prototype_page.dart';
 import 'pdf_report_solutions_page.dart';
 import 'quant_research_hub_page.dart';
+import 'order_flow_and_engines_page.dart';
+import 'signal_notifications.dart';
 
-const tabs = ['Dashboard','Market','Option Chain','OI Lab','Indicators','Signals','Risk','Commodities','Backtesting','API','AI Access','Data Health','API & Railway','Repository Library','Trading Setup','Research Engines','3-Layer Trade Engine','Broker Home (Prototype)','PDF Report & Repositories','Quant Research Hub'];
+const tabs = ['Dashboard','Market','Option Chain','OI Lab','Indicators','Signals','Risk','Commodities','Backtesting','API','AI Access','Data Health','API & Railway','Repository Library','Trading Setup','Research Engines','3-Layer Trade Engine','Broker Home (Prototype)','PDF Report & Repositories','Quant Research Hub','Order Flow','15 Strategy Engines'];
 const indexes = ['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY','SENSEX','BANKEX'];
 
 void main() => runApp(const FreshApp());
@@ -61,6 +63,7 @@ class _FreshHomeState extends State<FreshHome> {
   int emaSlow = 13;
   String status = 'Connect Angel One from Settings.';
   Timer? _refreshTimer;
+  final Map<String, String> _lastNotifiedSignal = {};
 
   Future<void> refresh() async {
     if (_refreshing) return;
@@ -103,6 +106,7 @@ class _FreshHomeState extends State<FreshHome> {
                 ? 'Signal data request failed: $signalsFetchError'
                 : (lastFetch != null ? 'LIVE unavailable — showing last fetched market data.' : 'Backend online — waiting for Angel One market data. Check broker credentials and connection status.'));
       });
+      await _emitValidatedSignalNotifications(s);
     } catch (e) {
       if (mounted) setState(() { apiOnline = false; signalsEndpointOnline = false; signalsFetchError = e.toString().replaceFirst('Exception: ', ''); });
       final prefs = await SharedPreferences.getInstance();
@@ -128,8 +132,38 @@ class _FreshHomeState extends State<FreshHome> {
     }
   }
 
+  Future<void> _emitValidatedSignalNotifications(Map<String, dynamic> payload) async {
+    final prefs = await SharedPreferences.getInstance();
+    final marketRows = Map<String, dynamic>.from(payload['market'] as Map? ?? const {});
+    final signalRows = Map<String, dynamic>.from(payload['signals'] as Map? ?? const {});
+    for (final index in indexes) {
+      final m = Map<String, dynamic>.from(marketRows[index] as Map? ?? const {});
+      final sig = Map<String, dynamic>.from(signalRows[index] as Map? ?? const {});
+      final validation = Map<String, dynamic>.from(sig['live_validation'] as Map? ?? const {});
+      final decision = (validation['decision'] ?? sig['decision'] ?? 'WAIT').toString().toUpperCase();
+      if (m['live'] != true || validation['verdict']?.toString().toUpperCase() != 'PASS' ||
+          (decision != 'CALL BUY' && decision != 'PUT BUY')) {
+        continue;
+      }
+      final identity = '$decision|\${sig['strike'] ?? ''}|\${sig['entry'] ?? ''}';
+      final key = 'fresh_notified_signal_$index';
+      final previous = prefs.getString(key);
+      if (previous == identity || _lastNotifiedSignal[index] == identity) continue;
+      _lastNotifiedSignal[index] = identity;
+      await prefs.setString(key, identity);
+      final entry = sig['entry']?.toString() ?? '—';
+      final stop = sig['stop_loss']?.toString() ?? '—';
+      final target = sig['target']?.toString() ?? '—';
+      await SignalNotifications.instance.showValidatedSignal(
+        index: index,
+        decision: decision,
+        detail: 'Validated signal • Entry ₹$entry • SL ₹$stop • Target ₹$target. Verify broker feed and risk before acting.',
+      );
+    }
+  }
+
   @override
-  void initState() { super.initState(); refresh(); _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => refresh()); }
+  void initState() { super.initState(); SignalNotifications.instance.initialize(); refresh(); _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => refresh()); }
 
   @override
   void dispose() { _refreshTimer?.cancel(); super.dispose(); }
@@ -245,6 +279,8 @@ class _FreshHomeState extends State<FreshHome> {
         ),
         const PdfReportSolutionsPage(),
         const QuantResearchHubPage(),
+        OrderFlowPage(selectedIndex: selectedIndex, market: market, signals: signals),
+        StrategyEngines15Page(selectedIndex: selectedIndex, market: market, signals: signals, ai: ai),
       ]),
     ),
   );
@@ -271,6 +307,8 @@ IconData _tabIcon(int index) => switch (index) {
   17 => Icons.account_balance_wallet_outlined,
   18 => Icons.picture_as_pdf_outlined,
   19 => Icons.science_outlined,
+  20 => Icons.swap_horiz,
+  21 => Icons.hub_outlined,
   _ => Icons.layers_outlined,
 };
 
