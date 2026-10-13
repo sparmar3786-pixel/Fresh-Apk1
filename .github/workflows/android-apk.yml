@@ -58,12 +58,16 @@ jobs:
           import re
           p = Path("android/app/src/main/AndroidManifest.xml")
           s = p.read_text()
-          permission = '    <uses-permission android:name="android.permission.INTERNET"/>\n'
-          if "android.permission.INTERNET" not in s:
-              match = re.search(r"<manifest\b[^>]*>", s, flags=re.DOTALL)
-              if not match:
-                  raise SystemExit("AndroidManifest.xml has no valid <manifest ...> root tag")
-              s = s[:match.end()] + "\n" + permission + s[match.end():]
+          permissions = [
+              '    <uses-permission android:name="android.permission.INTERNET"/>',
+              '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>',
+          ]
+          match = re.search(r"<manifest\b[^>]*>", s, flags=re.DOTALL)
+          if not match:
+              raise SystemExit("AndroidManifest.xml has no valid <manifest ...> root tag")
+          missing = [line for line in permissions if line.split('"')[1] not in s]
+          if missing:
+              s = s[:match.end()] + "\n" + "\n".join(missing) + s[match.end():]
               p.write_text(s)
           import xml.etree.ElementTree as ET
           ET.parse(p)
