@@ -64,6 +64,21 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
     }
   }
 
+  Future<bool> _hasGgufMagic(File file) async {
+    if (!await file.exists() || await file.length() < 4) return false;
+    final handle = await file.open(mode: FileMode.read);
+    try {
+      final header = await handle.read(4);
+      return header.length == 4 &&
+          header[0] == 0x47 &&
+          header[1] == 0x47 &&
+          header[2] == 0x55 &&
+          header[3] == 0x46;
+    } finally {
+      await handle.close();
+    }
+  }
+
   Future<void> _downloadModel() async {
     if (_downloading || _loading || _generating) return;
     setState(() {
@@ -105,9 +120,9 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
         await sink.close();
       }
 
-      if (received < 1000000000) {
+      if (received < 1000000000 || !await _hasGgufMagic(partial)) {
         throw const FormatException(
-          'Downloaded file is unexpectedly small; it may be an HTML error page.',
+          'Downloaded file failed GGUF header/size validation; it may be incomplete or an HTML error page.',
         );
       }
       if (await destination.exists()) await destination.delete();
@@ -134,7 +149,8 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
   Future<void> _loadModel() async {
     if (_loading || _loaded || _modelPath == null) return;
     final file = File(_modelPath!);
-    if (!await file.exists() || await file.length() < 1000000000) {
+    if (!await file.exists() || await file.length() < 1000000000 ||
+        !await _hasGgufMagic(file)) {
       setState(() => _error = 'Model file is missing or incomplete. Download it again.');
       return;
     }
