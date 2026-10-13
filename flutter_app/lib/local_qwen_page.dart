@@ -16,7 +16,7 @@ class LocalQwenPage extends StatefulWidget {
 }
 
 class _LocalQwenPageState extends State<LocalQwenPage> {
-  static const _modelFileName = 'Qwen3.5-4B-Q4_K_M.gguf';
+  static const _modelFileName = 'selected-model.gguf';
 
   late LlamaController _controller;
   final _promptController = TextEditingController();
@@ -78,7 +78,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
     if (_loading || _generating) return;
     setState(() {
       _error = null;
-      _status = 'Choose Qwen3.5-4B-Q4_K_M.gguf from Downloads';
+      _status = 'Choose your Qwen GGUF model from Downloads';
     });
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -97,7 +97,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
         throw const FormatException('Selected file is not a valid GGUF file.');
       }
       if (await source.length() < 1000000000) {
-        throw const FormatException('The selected file looks too small for this 4B Q4_K_M model; check that the download is complete.');
+        throw const FormatException('The selected GGUF file is under 1 GB; check that the download is complete and that you selected the main model file.');
       }
       final destination = await _modelFile();
       if (source.absolute.path != destination.absolute.path) {
@@ -133,8 +133,8 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
       // Start with a conservative context to reduce memory pressure on phones.
       await _controller.loadModel(
         modelPath: file.path,
-        threads: 4,
-        contextSize: 2048,
+        threads: 2,
+        contextSize: 1024,
       );
       if (!mounted) return;
       setState(() {
@@ -248,7 +248,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Qwen3.5-4B GGUF • Q4_K_M • on-device inference',
+          'GGUF model • on-device inference (low-memory mode)',
           style: TextStyle(color: Colors.white70),
         ),
         const SizedBox(height: 12),
@@ -313,7 +313,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
           child: Padding(
             padding: EdgeInsets.all(12),
             child: Text(
-              'The app reuses your existing GGUF file; no model download is started. It copies the selected file into app-private storage, then loads it with the bundled native engine. Chat can work offline after successful load. Live market data still requires a data connection. A 4B model may need several GB of free RAM; load failure can indicate RAM or model-format incompatibility.',
+              'Select the exact GGUF model file you want to run; no model download is started. The selected file is copied into app-private storage using a generic filename, then loaded with the bundled native engine using 2 threads and a 1024-token context to reduce memory pressure. Chat can work offline after successful load. Live market data still requires a data connection. Large models may still exceed Android's available memory or use an unsupported architecture; a native crash may require device logcat to diagnose.',
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ),
