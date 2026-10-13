@@ -339,7 +339,10 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
             ),
           ),
         ),
-        const Section('LOCAL CHAT'),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(4, 16, 4, 8),
+          child: Text('LOCAL CHAT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        ),
         Container(
           constraints: const BoxConstraints(minHeight: 180, maxHeight: 380),
           child: ListView.builder(
