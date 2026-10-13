@@ -145,7 +145,7 @@ class _FreshHomeState extends State<FreshHome> {
           (decision != 'CALL BUY' && decision != 'PUT BUY')) {
         continue;
       }
-      final identity = '$decision|\${sig['strike'] ?? ''}|\${sig['entry'] ?? ''}';
+      final identity = '$decision|${sig['strike'] ?? ''}|${sig['entry'] ?? ''}';
       final key = 'fresh_notified_signal_$index';
       final previous = prefs.getString(key);
       if (previous == identity || _lastNotifiedSignal[index] == identity) continue;
