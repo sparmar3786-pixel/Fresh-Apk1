@@ -50,6 +50,34 @@ jobs:
             flutter create --platforms=android --project-name fresh_algo_signal .
           fi
 
+      - name: Set minimum Android SDK for local Qwen plugin
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          candidates = [Path("android/app/build.gradle.kts"), Path("android/app/build.gradle")]
+          gradle = next((p for p in candidates if p.exists()), None)
+          if gradle is None:
+              raise SystemExit("Could not find android/app/build.gradle(.kts)")
+          source = gradle.read_text()
+          patterns = [
+              r"(?m)^(\\s*minSdk\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*minSdkVersion\\s+)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*minSdkVersion\\(\\s*)[0-9]+(\\s*\\)\\s*(?://.*)?)$",
+          ]
+          for pattern in patterns:
+              updated, count = re.subn(pattern, r"\\g<1>26\\g<2>", source, count=1)
+              if count:
+                  source = updated
+                  break
+          else:
+              raise SystemExit("Could not safely set minSdk to 26 in " + str(gradle))
+          gradle.write_text(source)
+          print("Set minimum Android SDK to 26 in", gradle)
+          PY
+
       - name: Enable core library desugaring for notifications
         shell: bash
         run: |
