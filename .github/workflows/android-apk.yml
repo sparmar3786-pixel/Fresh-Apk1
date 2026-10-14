@@ -167,10 +167,10 @@ jobs:
           if not files:
               raise SystemExit("file_picker Android Gradle file not found in pub cache")
           patterns = [
-              r"(?m)^(\\s*compileSdk\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*compileSdk\\s+)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*compileSdkVersion\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*compileSdkVersion\\s+)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdk\s*=\s*)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdk\s+)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdkVersion\s*=\s*)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdkVersion\s+)[^\s]+(\s*(?://.*)?)$",
           ]
           changed = []
           for path in files:
@@ -181,7 +181,7 @@ jobs:
                   if count:
                       break
               if updated == source:
-                  if re.search(r"(?m)^\\s*compileSdk(?:Version)?\\s*(?:=\\s*)?36\\b", source):
+                  if re.search(r"(?m)^\s*compileSdk(?:Version)?\s*(?:=\s*)?36\b", source):
                       continue
                   raise SystemExit("Could not safely raise compileSdk in " + str(path))
               path.write_text(updated)
