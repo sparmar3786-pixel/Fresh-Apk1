@@ -72,18 +72,18 @@ jobs:
               raise SystemExit(f"Could not safely set {name} in {gradle}")
 
           source = replace_version(source, "minSdk", "26", [
-              r"(?m)^(\\s*minSdk\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*minSdk\\s+)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*minSdkVersion\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*minSdkVersion\\s+)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*minSdkVersion\\(\\s*)[0-9]+(\\s*\\)\\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdk\s*=\s*)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdk\s+)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdkVersion\s*=\s*)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdkVersion\s+)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdkVersion\(\s*)[0-9]+(\s*\)\s*(?://.*)?)$",
           ])
           source = replace_version(source, "compileSdk", "36", [
-              r"(?m)^(\\s*compileSdk\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*compileSdk\\s+)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*compileSdkVersion\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*compileSdkVersion\\s+)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*compileSdkVersion\\(\\s*)[0-9]+(\\s*\\)\\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdk\s*=\s*)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdk\s+)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdkVersion\s*=\s*)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdkVersion\s+)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*compileSdkVersion\(\s*)[0-9]+(\s*\)\s*(?://.*)?)$",
           ])
           gradle.write_text(source)
           print("Updated Android SDK levels in", gradle)
