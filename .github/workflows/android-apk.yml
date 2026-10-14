@@ -124,7 +124,7 @@ jobs:
 
       - name: Validate Railway backend URL
         env:
-          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          BACKEND_URL: ${{ vars.BACKEND_URL || 'https://nse-algo-backend-final-production.up.railway.app' }}
         run: |
           python3 - <<'PY'
           import os
@@ -138,7 +138,7 @@ jobs:
 
       - name: Build release APK
         env:
-          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          BACKEND_URL: ${{ vars.BACKEND_URL || 'https://nse-algo-backend-final-production.up.railway.app' }}
         run: >-
           flutter build apk --release --no-tree-shake-icons
           --dart-define=BACKEND_URL=${BACKEND_URL}
