@@ -313,7 +313,7 @@ class _LocalQwenPageState extends State<LocalQwenPage> {
           child: Padding(
             padding: EdgeInsets.all(12),
             child: Text(
-              'Select the exact GGUF model file you want to run; no model download is started. The selected file is copied into app-private storage using a generic filename, then loaded with the bundled native engine using 2 threads and a 1024-token context to reduce memory pressure. Chat can work offline after successful load. Live market data still requires a data connection. Large models may still exceed Android's available memory or use an unsupported architecture; a native crash may require device logcat to diagnose.',
+              "Select the exact GGUF model file you want to run; no model download is started. The selected file is copied into app-private storage using a generic filename, then loaded with the bundled native engine using 2 threads and a 1024-token context to reduce memory pressure. Chat can work offline after successful load. Live market data still requires a data connection. Large models may still exceed Android's available memory or use an unsupported architecture; a native crash may require device logcat to diagnose.",
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ),
