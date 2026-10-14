@@ -69,10 +69,22 @@ class _FreshHomeState extends State<FreshHome> {
   Future<void> refresh() async {
     if (_refreshing) return;
     _refreshing = true;
+    var healthCheckPassed = false;
+    String? angelStatusError;
     try {
       final api = FreshApi(backendUrl);
       await api.health();
-      final a = await api.angelStatus();
+      healthCheckPassed = true;
+      // A successful health probe means the backend is online even if a
+      // downstream broker/status endpoint subsequently fails.
+      if (mounted) setState(() => apiOnline = true);
+      Map<String, dynamic> a = const {};
+      try {
+        a = await api.angelStatus();
+      } catch (e) {
+        angelStatusError = e.toString().replaceFirst('Exception: ', '');
+        if (mounted) setState(() => angelOnline = false);
+      }
       Map<String,dynamic> liveStatus = const {};
       try { liveStatus = await api.liveExecutionStatus(); } catch (_) {}
       Map<String,dynamic> s;
@@ -103,20 +115,24 @@ class _FreshHomeState extends State<FreshHome> {
         lastFetch = s['last_fetch']?.toString();
         status = s['live'] == true
             ? 'LIVE market feed connected.'
-            : (signalsFetchError != null && (s['market'] as Map?)?.isEmpty != false
-                ? 'Signal data request failed: $signalsFetchError'
-                : (lastFetch != null ? 'LIVE unavailable — showing last fetched market data.' : 'Backend online — waiting for Angel One market data. Check broker credentials and connection status.'));
+            : (signalsFetchError != null
+                ? 'Backend online • signals API error: $signalsFetchError'
+                : (angelStatusError != null
+                    ? 'Backend online • Angel One status check failed: $angelStatusError'
+                    : (lastFetch != null
+                        ? 'LIVE unavailable — showing last fetched market data.'
+                        : 'Backend online — waiting for Angel One market data. Check broker credentials and connection status.')));
       });
       try { await _emitValidatedSignalNotifications(s); } catch (_) { /* Notifications must not mark a healthy API offline. */ }
     } catch (e) {
-      if (mounted) setState(() { apiOnline = false; signalsEndpointOnline = false; signalsFetchError = e.toString().replaceFirst('Exception: ', ''); });
+      if (mounted) setState(() { apiOnline = healthCheckPassed; if (!healthCheckPassed) signalsEndpointOnline = false; signalsFetchError = e.toString().replaceFirst('Exception: ', ''); });
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString('fresh_last_signals');
       final s = raw == null ? <String,dynamic>{} : Map<String,dynamic>.from(jsonDecode(raw) as Map);
       if (!mounted) return;
       setState(() {
-        apiOnline = false;
-        signalsEndpointOnline = false;
+        apiOnline = healthCheckPassed;
+        if (!healthCheckPassed) signalsEndpointOnline = false;
         ai = (s['ai'] as Map?)?.cast<String,dynamic>() ?? {};
         feed = (s['feed'] as Map?)?.cast<String,dynamic>() ?? {};
         storeDiagnostics = (s['store'] as Map?)?.cast<String,dynamic>() ?? {};
@@ -126,7 +142,7 @@ class _FreshHomeState extends State<FreshHome> {
         tradePlans = (s['trade_plans'] as List?) ?? [];
         qualifiedCount = (s['qualified_trade_count'] as num?)?.toInt() ?? tradePlans.length;
         lastFetch = s['last_fetch']?.toString();
-        status = lastFetch != null ? 'Backend unavailable — showing last fetched market data. Error: ${signalsFetchError ?? 'request failed'}' : 'Backend offline or unreachable: ${signalsFetchError ?? 'health check failed'}';
+        status = healthCheckPassed ? 'Backend online • secondary API request failed: ${signalsFetchError ?? 'request failed'}' : (lastFetch != null ? 'Backend unavailable — showing last fetched market data. Error: ${signalsFetchError ?? 'request failed'}' : 'Backend offline or unreachable: ${signalsFetchError ?? 'health check failed'}');
       });
     } finally {
       _refreshing = false;
