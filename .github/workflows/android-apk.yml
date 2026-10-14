@@ -50,7 +50,7 @@ jobs:
             flutter create --platforms=android --project-name fresh_algo_signal .
           fi
 
-      - name: Set minimum Android SDK for local Qwen plugin
+      - name: Set Android SDK levels for Qwen and current plugins
         shell: bash
         run: |
           python3 - <<'PY'
@@ -62,20 +62,31 @@ jobs:
           if gradle is None:
               raise SystemExit("Could not find android/app/build.gradle(.kts)")
           source = gradle.read_text()
-          patterns = [
-              r"(?m)^(\s*minSdk\s*=\s*)[^\s]+(\s*(?://.*)?)$",
-              r"(?m)^(\s*minSdkVersion\s+)[^\s]+(\s*(?://.*)?)$",
-              r"(?m)^(\s*minSdkVersion\(\s*)[0-9]+(\s*\)\s*(?://.*)?)$",
-          ]
-          for pattern in patterns:
-              updated, count = re.subn(pattern, r"\g<1>26\g<2>", source, count=1)
-              if count:
-                  source = updated
-                  break
-          else:
-              raise SystemExit("Could not safely set minSdk to 26 in " + str(gradle))
+
+          def replace_version(text, name, value, patterns):
+              for pattern in patterns:
+                  updated, count = re.subn(pattern, lambda m: m.group(1) + value + m.group(2), text, count=1)
+                  if count:
+                      print(f"Set {name} to {value}")
+                      return updated
+              raise SystemExit(f"Could not safely set {name} in {gradle}")
+
+          source = replace_version(source, "minSdk", "26", [
+              r"(?m)^(\\s*minSdk\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*minSdk\\s+)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*minSdkVersion\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*minSdkVersion\\s+)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*minSdkVersion\\(\\s*)[0-9]+(\\s*\\)\\s*(?://.*)?)$",
+          ])
+          source = replace_version(source, "compileSdk", "36", [
+              r"(?m)^(\\s*compileSdk\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*compileSdk\\s+)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*compileSdkVersion\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*compileSdkVersion\\s+)[^\\s]+(\\s*(?://.*)?)$",
+              r"(?m)^(\\s*compileSdkVersion\\(\\s*)[0-9]+(\\s*\\)\\s*(?://.*)?)$",
+          ])
           gradle.write_text(source)
-          print("Set minimum Android SDK to 26 in", gradle)
+          print("Updated Android SDK levels in", gradle)
           PY
 
       - name: Enable core library desugaring for notifications
