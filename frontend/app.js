@@ -13,7 +13,16 @@
     return id;
   };
   const DEFAULT_BACKEND = "https://nse-algo-backend-final-production.up.railway.app";
-  const state = { backend: (storage.getItem("fresh_backend_url") || "").trim() || DEFAULT_BACKEND, data: null, timer: null };
+  const savedBackend = (storage.getItem("fresh_backend_url") || "").trim().replace(/\/+$/, "");
+  const state = {
+    backend: !savedBackend ||
+      !/^https:\/\//i.test(savedBackend) ||
+      savedBackend === "https://fresh-algo-signal-gateway-v2.onrender.com"
+      ? DEFAULT_BACKEND
+      : savedBackend,
+    data: null,
+    timer: null,
+  };
   const apiUrl = (path) => state.backend.replace(/\/$/, "") + path;
   const esc = (v) => String(v ?? "—").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const log = (message) => {
