@@ -37,7 +37,7 @@
     input.value = state.backend;
     wrap.querySelector("#saveBackend").addEventListener("click", () => {
       const value = input.value.trim().replace(/\/$/, "");
-      if (value && !/^https?:\/\//i.test(value)) { alert("Backend URL must begin with http:// or https://"); return; }
+      if (!value || !/^https:\/\//i.test(value)) { alert("Enter a public backend URL beginning with https://"); return; }
       state.backend = value;
       storage.setItem("fresh_backend_url", value);
       connect();
