@@ -12,7 +12,8 @@
     }
     return id;
   };
-  const state = { backend: storage.getItem("fresh_backend_url") || "", data: null, timer: null };
+  const DEFAULT_BACKEND = "https://nse-algo-backend-final-production.up.railway.app";
+  const state = { backend: (storage.getItem("fresh_backend_url") || "").trim() || DEFAULT_BACKEND, data: null, timer: null };
   const apiUrl = (path) => state.backend.replace(/\/$/, "") + path;
   const esc = (v) => String(v ?? "—").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const log = (message) => {
@@ -145,17 +146,28 @@
   }
   async function connect() {
     if (!state.backend) { setPill("conn","backend URL required","bad"); return; }
+
+    // Test service health separately from the data endpoint so a signals
+    // route/market-data error is not mislabeled as a completely offline API.
     try {
       const healthResponse = await fetch(apiUrl("/health"), { signal: AbortSignal.timeout(7000) });
       if (!healthResponse.ok) throw new Error("Health endpoint HTTP " + healthResponse.status);
-      setPill("conn","backend online","good");
+      setPill("conn","backend online · checking signals","good");
+    } catch (e) {
+      setPill("conn","backend offline","bad");
+      setPill("src","source: unavailable","bad");
+      log("Health check failed: " + e.message);
+      return;
+    }
+
+    try {
       const data = await request("/api/signals");
       renderData(data);
       log("Signals refreshed successfully.");
     } catch (e) {
-      setPill("conn","backend offline / API error","bad");
-      setPill("src","source: unavailable","bad");
-      log("Connection failed: " + e.message);
+      setPill("conn","backend online · signals API error","warn");
+      setPill("src","source: signals unavailable","bad");
+      log("Backend health is OK, but signals request failed: " + e.message);
     }
   }
   document.querySelectorAll("[data-tab]").forEach(button => button.addEventListener("click", () => {
