@@ -63,12 +63,12 @@ jobs:
               raise SystemExit("Could not find android/app/build.gradle(.kts)")
           source = gradle.read_text()
           patterns = [
-              r"(?m)^(\\s*minSdk\\s*=\\s*)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*minSdkVersion\\s+)[^\\s]+(\\s*(?://.*)?)$",
-              r"(?m)^(\\s*minSdkVersion\\(\\s*)[0-9]+(\\s*\\)\\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdk\s*=\s*)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdkVersion\s+)[^\s]+(\s*(?://.*)?)$",
+              r"(?m)^(\s*minSdkVersion\(\s*)[0-9]+(\s*\)\s*(?://.*)?)$",
           ]
           for pattern in patterns:
-              updated, count = re.subn(pattern, r"\\g<1>26\\g<2>", source, count=1)
+              updated, count = re.subn(pattern, r"\g<1>26\g<2>", source, count=1)
               if count:
                   source = updated
                   break
